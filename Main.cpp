@@ -1,12 +1,57 @@
 #include <iostream>
-#include <fstream>
-#include <string>
 #include <vector>
+#include <string>
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 
-// --- CLASS: Student ---
+// --- SAFE INPUT HELPER FUNCTIONS ---
+
+// Function to safely take integer input
+int getInt(const string& prompt) {
+    string line;
+    int value;
+    while (true) {
+        cout << prompt;
+        getline(cin, line);
+        stringstream ss(line);
+        if (ss >> value) {
+            return value;
+        }
+        
+    }
+}
+
+// Function to safely take marks between 0 and 100
+float getMarks(const string& prompt) {
+    string line;
+    float value;
+    while (true) {
+        cout << prompt;
+        getline(cin, line);
+        stringstream ss(line);
+        if (ss >> value && value >= 0 && value <= 100) {
+            return value;
+        }
+        cout << ">> Invalid marks! Please enter between 0 and 100.\n";
+    }
+}
+
+// Function to safely take non-empty string
+string getString(const string& prompt) {
+    string line;
+    while (true) {
+        cout << prompt;
+        getline(cin, line);
+        if (!line.empty()) {
+            return line;
+        }
+        cout << ">> Name cannot be empty. Try again.\n";
+    }
+}
+
+// --- STUDENT CLASS ---
 class Student {
 public:
     int rollNo;
@@ -23,122 +68,112 @@ public:
     }
 
     void input() {
-        cout << "Enter Roll No: ";
-        cin >> rollNo;
-        cin.ignore();
-        cout << "Enter Name: ";
-        getline(cin, name);
-        cout << "Enter Marks (out of 100): ";
-        cin >> marks;
+        rollNo = getInt("Enter Roll No: ");
+        name = getString("Enter Name: ");
+        marks = getMarks("Enter Marks (0-100): ");
         calculateGrade();
     }
 
-    void display() {
+    void display() const {
         cout << left << setw(10) << rollNo
-             << setw(25) << name
-             << setw(10) << marks
-             << setw(5) << grade << endl;
+             << setw(20) << name
+             << setw(10) << fixed << setprecision(2) << marks
+             << setw(8) << grade << endl;
     }
 };
 
-// --- FILE OPERATIONS ---
-void saveToFile(vector<Student>& students) {
-    ofstream file("students.dat", ios::binary);
-    int size = students.size();
-    file.write((char*)&size, sizeof(size));
-    for (auto& s : students) {
-        file.write((char*)&s, sizeof(Student));
-    }
-    file.close();
-}
-
-void loadFromFile(vector<Student>& students) {
-    ifstream file("students.dat", ios::binary);
-    if (!file) return;
-    int size;
-    file.read((char*)&size, sizeof(size));
-    students.resize(size);
-    for (int i = 0; i < size; i++) {
-        file.read((char*)&students[i], sizeof(Student));
-    }
-    file.close();
-}
-
-// --- MAIN MENU ---
+// --- MAIN FUNCTION ---
 int main() {
     vector<Student> students;
-    loadFromFile(students);
-    int choice;
+    int choice = 0;
 
     do {
-        cout << "\n===== STUDENT MANAGEMENT SYSTEM =====\n";
-        cout << "1. Add Student\n";
-        cout << "2. View All Students\n";
-        cout << "3. Search by Roll No\n";
-        cout << "4. Delete Student\n";
+        cout << "\n=====================================\n";
+        cout << "   STUDENT RECORD MANAGEMENT SYSTEM  \n";
+        cout << "=====================================\n";
+        cout << "1. Add New Student\n";
+        cout << "2. View All Records\n";
+        cout << "3. Search by Roll Number\n";
+        cout << "4. Delete Student Record\n";
         cout << "5. Exit\n";
-        cout << "Enter choice: ";
-        cin >> choice;
+        cout << "-------------------------------------\n";
+        
+        choice = getInt("Enter your choice (1-5): ");
 
         switch (choice) {
             case 1: {
+                cout << "\n--- Add New Student ---\n";
                 Student s;
                 s.input();
                 students.push_back(s);
-                saveToFile(students);
-                cout << "✅ Student added successfully!\n";
+                cout << "\n[SUCCESS] Student record added successfully!\n";
                 break;
             }
             case 2: {
                 if (students.empty()) {
-                    cout << "No records found.\n";
+                    cout << "\n[INFO] No records found!\n";
                     break;
                 }
                 cout << "\n" << left << setw(10) << "Roll No"
-                     << setw(25) << "Name"
+                     << setw(20) << "Name"
                      << setw(10) << "Marks"
-                     << setw(5) << "Grade" << endl;
-                cout << string(50, '-') << endl;
-                for (auto& s : students) s.display();
+                     << setw(8) << "Grade" << endl;
+                cout << string(48, '-') << endl;
+                for (const auto& s : students) {
+                    s.display();
+                }
                 break;
             }
             case 3: {
-                int roll;
-                cout << "Enter Roll No to search: ";
-                cin >> roll;
+                if (students.empty()) {
+                    cout << "\n[INFO] No records found!\n";
+                    break;
+                }
+                int roll = getInt("Enter Roll No to search: ");
                 bool found = false;
-                for (auto& s : students) {
+                for (const auto& s : students) {
                     if (s.rollNo == roll) {
+                        cout << "\n--- Student Found ---\n";
+                        cout << left << setw(10) << "Roll No"
+                             << setw(20) << "Name"
+                             << setw(10) << "Marks"
+                             << setw(8) << "Grade" << endl;
+                        cout << string(48, '-') << endl;
                         s.display();
                         found = true;
                         break;
                     }
                 }
-                if (!found) cout << "❌ Student not found.\n";
+                if (!found) {
+                    cout << "\n[ERROR] Student with Roll No " << roll << " not found.\n";
+                }
                 break;
             }
             case 4: {
-                int roll;
-                cout << "Enter Roll No to delete: ";
-                cin >> roll;
+                if (students.empty()) {
+                    cout << "\n[INFO] No records found!\n";
+                    break;
+                }
+                int roll = getInt("Enter Roll No to delete: ");
                 bool deleted = false;
                 for (auto it = students.begin(); it != students.end(); ++it) {
                     if (it->rollNo == roll) {
                         students.erase(it);
-                        saveToFile(students);
-                        cout << "🗑 Student deleted.\n";
+                        cout << "\n[SUCCESS] Record deleted successfully!\n";
                         deleted = true;
                         break;
                     }
                 }
-                if (!deleted) cout << "❌ Student not found.\n";
+                if (!deleted) {
+                    cout << "\n[ERROR] Student with Roll No " << roll << " not found.\n";
+                }
                 break;
             }
             case 5:
-                cout << "Goodbye!\n";
+                cout << "\nThank you for using the system. Goodbye!\n";
                 break;
             default:
-                cout << "Invalid choice!\n";
+                cout << "\n[ERROR] Invalid choice! Please select 1, 2, 3, 4, or 5.\n";
         }
     } while (choice != 5);
 
